@@ -96,7 +96,7 @@ def download_anime_by_link(url_anime_raw: str, range: list) -> None:
         
         anime_id = anime['id']
         anime_num = anime['number']
-        if len(range) >= 2:
+        if len(range) >= 1:
             if not anime_num in range:
                 continue            
     
@@ -195,11 +195,8 @@ def get_anime_range() -> List:
     while not is_valid:
         user_input = handle_input('> ')
         if user_input.lower() == 'all':
-            # do something
-            episodes = ['all']
             is_valid = True
         else:
-            # check for ; pattern
             if re.search("^[0-9]+(\;|\n)", user_input):
                 is_valid = True
                 episodes = re.split(';', user_input)
