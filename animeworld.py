@@ -5,12 +5,27 @@ import datetime
 import re
 import os
 import argparse
-from typing import List
+import json
+from typing import List, Dict
 
 import wget
 import requests
 from pathlib import Path
 from bs4 import BeautifulSoup
+
+from enum import Enum
+    
+
+class Anime():
+    def __init__(self, title: str, genre: str, year: int, link_id: str, aid:int = 0):
+        self.title = title
+        self.genre = genre
+        self.year = year
+        self.link = link_id
+        self.id = aid
+
+    def __str__(self):
+        return f"[{self.id}] - {self.title}"
 
 
 def print_log(m: str, key: str = "none") -> None:
@@ -21,7 +36,7 @@ def print_log(m: str, key: str = "none") -> None:
         'happy': '（＞ｙ＜）',
         'none': ''
     }
-    print("[{}] ene-chan: {} {}".format(str(datetime.date.today().strftime("%d/%m/%Y - %H:%M:%S")), m, emojies[key]))
+    print("[{}] ene-chan: {} {}".format(str(datetime.date.today().strftime("%d/%m/%Y - %h")), m, emojies[key]))
     return 
 
 def create_directory(anime_name: str) -> str:
@@ -48,7 +63,6 @@ def get_episode_ids(server: str) -> List:
         if 'data-id' in link.attrs:
             episodes_id.append(link.attrs['data-id'])
     return episodes_id
-
 
 def download_anime(url_anime_raw: str) -> None:
 
@@ -119,18 +133,104 @@ def download_anime(url_anime_raw: str) -> None:
 
     return None
 
+def search_by_keyword(keyword: str) -> Dict[int, Anime]:
+
+    """
+    Search anime in animeworld.tv search engine. The search engine
+    return from a get call a json object with only a element.
+    The element key is 'html' which contains the anime found
+    with the keyword inserted by user.
+    """
+    def make_request(key: str) -> str:
+        request = requests.get('https://www.animeworld.tv/ajax/film/search', params={'keyword': key })
+        answer = request.content.decode('utf8').replace("'", '"')
+        data = json.loads(answer)
+        return data['html']
+
+    # create an html parse to elaborate searches
+    soup = BeautifulSoup(make_request(keyword), 'html.parser')
+
+    # get anime links and titles, and assign an id
+    a_id = 1
+    anime_list = dict()
+
+    for e in soup.find_all('a'):
+
+        # get title
+        title = e.get('data-jtitle')
+        # if title is null then there isn't any anime in that a element
+        if title != None:
+            link = "{}/{}".format("https://www.animeworld.tv", e.get('href'))
+            anime_list[a_id] = Anime(title, 'None', 2019, link, a_id)
+            a_id += 1
+            
+    return anime_list
+
+def search_anime():
+    
+    anime_name = input("Digita il nome di un anime che vuoi cercare: ")
+    if anime_name is None:
+        print("[X] Il nome inserito non e' valido!")
+        return
+    
+    anime = search_by_keyword(anime_name)
+
+    if len(anime.values()) > 0:
+        
+        print(f"Sono stati trovati {len(anime.values())} anime. Digita il numero dell'anime inserito.")
+        print("Altrimenti inserisci '0' per uscire dalla ricerca.")
+        for a in anime.values():
+            print(a)
+
+        choiced = -1
+
+        while choiced < 0 or choiced >= len(anime.values()) + 1:
+            user_input = input(f"Digita un numero tra [1-{len(anime.values())}]: ")
+            try:
+                choiced = int(user_input)
+            except ValueError:
+                print("[X] Input errato! Inserisci un numero, altrimenti, inserisci '0' per uscire dalla ricerca!")
+
+        if choiced == 0:
+            return
+        anime_choiced = anime[choiced]
+        print(f"Preparazione del download dell'anime: '{anime_choiced.title}'")
+        download_anime(anime_choiced.link)
+
+    else:
+        print("Non e' stato trovato nessun anime col nome inserito.")
+
 def main():
 
-    parser = argparse.ArgumentParser(description="Inserisci il link dell'anime che vuoi scaricare.")
-    parser.add_argument('link', metavar='l', type=str, help="link dell'anime da scaricare")
+    def setup_parser() -> argparse.ArgumentParser:
+        parser = argparse.ArgumentParser(description="Inserisci il link dell'anime che vuoi scaricare.")
+        parser.add_argument('--link', default='', type=str, help="link dell'anime da scaricare (default: nessuno)")
+        return parser
 
-    args = parser.parse_args()
+    def print_menu() -> None:
+        print("Digita una delle seguenti operazioni: ")
+        print("1 - Cerca un anime da scaricare;")
+        print("2 - Inserisci il link di un anime che vuoi scaricare;")
+        print("3 - Esci dal programma")
 
-    if args.link is None:
-        print_log("[X] Error: inserisci il link dell'anime che vuoi scaricare", "angry")
-        exit(1)
+    parser = setup_parser()
+    user_choice = 0
+    menu = [
+        search_anime
 
-    download_anime(args.link)
+    ]
+
+    while user_choice != 3:
+        print_menu()
+        try:
+            user_choice = input('> ')
+        except KeyboardInterrupt:
+            print("Chiusura del programma in corso...")
+        if user_choice == 3:
+            continue
+        menu[int(user_choice) - 1]()
+        print("")
+
 
     return
 
