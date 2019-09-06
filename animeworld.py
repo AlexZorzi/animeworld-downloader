@@ -39,12 +39,23 @@ def print_log(m: str, key: str = "") -> None:
 
 def create_directory(anime_name: str) -> str:
     
-    video_directory = "{}/Videos".format(str(Path.home()))
+    def check_anime_folder():
+        # check if anime folder exists
+        if not os.path.isdir(f"{str(Path.home())}/Anime"):
+            try:
+                os.mkdir(f"{str(Path.home())}/Anime")
+            except OSError:
+                print_log("[X] Error: impossibile creare la cartella che conterrà anime.")
+                exit(1)
+
+    check_anime_folder()
+
+    video_directory = f"{str(Path.home())}/Anime"
     path = "{}/{}".format(video_directory, anime_name)
 
     if os.path.isdir(path):
         return path
-
+    # create anime directory
     try:
         os.mkdir(path)
         return path
@@ -96,9 +107,13 @@ def download_anime_by_link(url_anime_raw: str, range: list) -> None:
         
         anime_id = anime['id']
         anime_num = anime['number']
-        if len(range) >= 1:
+        if len(range) >= 1 and range[0] != 'all':
             if not anime_num in range:
-                continue            
+                continue    
+            else:
+                range.remove(anime_num)   
+        elif len(range) == 0:
+            break  
     
         print_log("richiesta al server 28 per l'episodio [{}/{}]...".format(anime_id, anime_num))
         
@@ -113,7 +128,7 @@ def download_anime_by_link(url_anime_raw: str, range: list) -> None:
 
         i += 1
 
-        print_log("trovati attualmente %d episodio/i..." % i)
+        # print_log("trovati attualmente %d episodio/i..." % i)
     
     path = create_directory(title)
     print_log("creata directory al seguente indirizzo: '%s'" % path)
@@ -137,7 +152,7 @@ def download_anime_by_link(url_anime_raw: str, range: list) -> None:
             print("\n")
         except KeyboardInterrupt:
             print_log("\n[!] Warning: download dell'anime annullato come richiesto dall'utente...")
-            # TODO: clean files from system
+            delete_anime_files(path)
             print_log("chiusura del programma in corso...")
             exit(1)
         pass
@@ -145,6 +160,11 @@ def download_anime_by_link(url_anime_raw: str, range: list) -> None:
     print_log("I download sono stati completati, i video si trovano nella seguente directory:\n%s" % path)
 
     return None
+
+def delete_anime_files(path: str) -> None:
+    for f in os.listdir(path):
+        print_log(f"il file '{f}' verra' rimosso dal sistema...")
+        os.remove(f)
 
 def search_by_keyword(keyword: str) -> Dict[int, Anime]:
 
@@ -196,6 +216,7 @@ def get_anime_range() -> List:
         user_input = handle_input('> ')
         if user_input.lower() == 'all':
             is_valid = True
+            episodes = ['all']
         else:
             if re.search("^[0-9]+(\;|\n)", user_input):
                 is_valid = True
@@ -287,10 +308,10 @@ def main() -> int:
 
     while user_choice != len(menu) + 1:
         print_menu()
-        user_choice = handle_input('> ')
+        user_choice = int(handle_input('> '))
         if user_choice == 3:
             continue
-        menu[int(user_choice) - 1]()
+        menu[user_choice - 1]()
         print("")
 
     return 0
