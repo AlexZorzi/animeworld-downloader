@@ -76,7 +76,10 @@ def get_episodses(server: str) -> List:
             })
     return episodes_id
 
-def download_anime_by_link(url_anime_raw: str, range: list) -> None:
+def download_anime_by_link(url_anime_raw: str, range_episodes: list) -> None:
+
+    if len(range_episodes) == 0:
+        return None
 
     html_page = requests.get(url_anime_raw).text
     soup = BeautifulSoup(html_page, "html.parser")
@@ -107,13 +110,12 @@ def download_anime_by_link(url_anime_raw: str, range: list) -> None:
         
         anime_id = anime['id']
         anime_num = anime['number']
-        if len(range) >= 1 and range[0] != 'all':
-            if not anime_num in range:
+
+        if len(range_episodes) >= 1 and range_episodes[0] != 'all':
+            if not anime_num in range_episodes:
                 continue    
             else:
-                range.remove(anime_num)   
-        elif len(range) == 0:
-            break  
+                range_episodes.remove(anime_num)   
     
         print_log("richiesta al server 28 per l'episodio [{}/{}]...".format(anime_id, anime_num))
         
@@ -175,7 +177,13 @@ def search_by_keyword(keyword: str) -> Dict[int, Anime]:
     with the keyword inserted by user.
     """
     def make_request(key: str) -> str:
-        request = requests.get('https://www.animeworld.tv/ajax/film/search', params={'keyword': key })
+        headers = {
+            'accept': 'application/json, text/javascript, */*; q=0.01',
+            'sec-fetch-mode': 'cors',
+            'user-agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/76.0.3809.100 Safari/537.36',
+            'x-requested-with': 'XMLHttpRequest'
+        }    
+        request = requests.get('https://www.animeworld.tv/ajax/film/search', params={'keyword': key }, headers=headers)
         data = request.json()
         return data['html']
 
@@ -204,9 +212,11 @@ def search_by_keyword(keyword: str) -> Dict[int, Anime]:
 
 def get_anime_range() -> List:
     
-    print("Quale episodio/i vuoi scaricare? Digita un range nella forma 'xxx:yyy'.")
-    print("Altrimenti, se vuoi scaricare l'intera serie digita 'all'")
-    print("Oppure se vuoi scaricare episodi specifici usa la seguente forma x;y;z;k")
+    print("Quale/i episodio/i vuoi scaricare?")
+    print("\t- digita il numero dell'episodio che vorresti scaricare, ad esempio: 8;")
+    print("\t- digita un range da xx:yy, ad esempio: 1:100 scarichera' gli episodi da 1 a 100 incluso;")
+    print("\t- digita un intervallo separato da ; se vuoi scaricare episodi diversi, ad esempio: 1;5;32;102;")
+    print("\t- altrimenti digta 'all', senza virgolette, per scaricare l'intera serie.")
 
     is_valid = False
 
@@ -227,11 +237,12 @@ def get_anime_range() -> List:
                 temp = re.split(':', user_input)
                 for i in range(int(temp[0]), int(temp[1]) + 1):
                     episodes.append(i)
+            elif re.search("^[0-9]+", user_input):
+                is_valid = True
+                episodes = [int(user_input)]
             else:
-                print("Pattern inserito non valido! Riprova...")
+                print("input digitato non corretto! Controlla le istruzioni di sopra...")
                 is_valid = False
-
-    print(episodes)
 
     return episodes
 
@@ -297,14 +308,11 @@ def main() -> int:
     arg_link = parser.parse_args().link
 
     if arg_link != '':
-        download_anime_by_link(arg_link)
+        download_anime_by_link(arg_link, ['all'])
         return 0
 
     user_choice = 0
-    menu = [
-        search_anime,
-        download_anime
-    ]
+    menu = [search_anime, download_anime]
 
     while user_choice != len(menu) + 1:
         print_menu()

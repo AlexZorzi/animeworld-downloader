@@ -20,13 +20,15 @@ Ad esempio:
 ```
 animeworld https://www.animeworld.tv/watch/dragon-ball-super.qu9Y82/XLZNN
 ```
-Lo script scaricherà, in modo sincrono, l'intero anime all'interno della cartella `/home/$USER/Videos/AnimeName/`.
+Lo script scaricherà, in modo sincrono, l'intero anime all'interno della cartella `/home/$USER/Anime/{anime_name}/`.
 
 Per visualizzare il manuale basta digitare:
 ```
 animeworld --help
 ```
 
-**Disclaimer**: assicurati che nella tua home esiste la cartella `Videos`
 
- gabryon @2019
+## Supporto
+Ricordate di supportare il team di AnimeWorld visitando il loro sito web all'indirizzo: http://animeworld.tv.
+
+gabryon @2019
