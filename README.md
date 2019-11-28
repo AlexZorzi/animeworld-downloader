@@ -1,34 +1,30 @@
-# Animeworld-downloader
-Uno script realizzato in Python 3. Permette di scaricare un intero anime dal sito: https://animeworld.tv
+# animeworld-downloader
+A simple python3 script to download animeworld.tv animes.
 
-## Prerequisiti
-Per potere utilizzare correttamente lo script è necessario installare i seguenti pacchetti attraverso `pip`:
+### Prerequisites
+Install the packages down below with pip3:
 ```
 pip3 install --user wget bs4
 ```
 
-## Installazione
-Per potere installare lo script basta eseguire questi comandi:
+### Installation
+To install the script open a terminal and digit:
 ```
 mv path/to/script/animeworld.py /usr/local/bin/animeworld-downloader
 ```
-Assicurati che il path sia contentuto all'interno della variabile di ambiente `$PATH` del tuo sistema operativo.
+Be sure the path is included in the environment variable $PATH of your system.
 
-## Utilizzo
-L'uso del programma è molto semplice, basta digitare: `animeworld link-anime-da-animeworld`.
-Ad esempio:
-```
-animeworld https://www.animeworld.tv/watch/dragon-ball-super.qu9Y82/XLZNN
-```
-Lo script scaricherà, in modo sincrono, l'intero anime all'interno della cartella `/home/$USER/Anime/{anime_name}/`.
+### Usage
+The program usage il very simple, type `animeworld` in the command line interface and the magic will happen.
+The script will downloads, synchronously, the entire anime inside the folder `/home/$USER/Anime/{anime_name}/` (make sure to have the folder `Anime` inside your home)
 
-Per visualizzare il manuale basta digitare:
+If you want a guide you have just to type in the command line:
 ```
 animeworld --help
 ```
 
 
-## Supporto
-Ricordate di supportare il team di AnimeWorld visitando il loro sito web all'indirizzo: http://animeworld.tv.
+### Support and Credits
+Remember to support AnimeWorld team visiting their website: https://www.animeworld.tv/
 
-gabryon @2019
+Created by [@gabryon99](https://github.com/gabryon99)
