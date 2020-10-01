@@ -41,16 +41,18 @@ def create_directory(anime_name: str) -> str:
     
     def check_anime_folder():
         # check if anime folder exists
-        if not os.path.isdir(f"{str(Path.home())}/Anime"):
+        # Just make the download path in the same directory...
+        # nobody likes stuff in the home path tbh
+        if not os.path.isdir("Anime"):
             try:
-                os.mkdir(f"{str(Path.home())}/Anime")
+                os.mkdir("Anime")
             except OSError:
                 print_log("[X] Error: impossibile creare la cartella che conterrà anime.")
                 exit(1)
 
     check_anime_folder()
 
-    video_directory = f"{str(Path.home())}/Anime"
+    video_directory = "Anime"
     path = "{}/{}".format(video_directory, anime_name)
 
     if os.path.isdir(path):
@@ -80,22 +82,24 @@ def download_anime_by_link(url_anime_raw: str, range_episodes: list) -> None:
 
     if len(range_episodes) == 0:
         return None
+    try:
+        html_page = requests.get(url_anime_raw).text
+        soup = BeautifulSoup(html_page, "html.parser")
 
-    html_page = requests.get(url_anime_raw).text
-    soup = BeautifulSoup(html_page, "html.parser")
-
-    h1 = soup.findAll("h1", {"class": "title"})
-    title = h1[0].text
-
+        h1 = soup.findAll("h1", {"class": "title"})
+        title = h1[0].text
+    except:
+        print("Errore Nell'Url!")
+        return None
+    
     print_log("contatto il sever di animeworld.tv per scaricare' %s'..." % title)
 
-    server_28 = soup.find('div', attrs={
-        'data-id': 28,
-        'class': 'server'
-    })
+    # here you could use a different query, maybe a by finding the server id Es: 8,9,10
+    server_active = soup.find('div', 'server active')
 
-    episodes = get_episodses(server_28)
-    url_request = 'https://www.animeworld.tv/ajax/episode/info'
+    episodes = get_episodses(server_active)
+    #change of api endpoint
+    url_request = 'https://www.animeworld.tv/api/episode/info'
     headers = {
         'accept': 'application/json, text/javascript, */*; q=0.01',
         'sec-fetch-mode': 'cors',
@@ -110,16 +114,15 @@ def download_anime_by_link(url_anime_raw: str, range_episodes: list) -> None:
         
         anime_id = anime['id']
         anime_num = anime['number']
-
-        if len(range_episodes) >= 1 and range_episodes[0] != 'all':
+        if len(range_episodes) >= 1 and range_episodes[0] != 'all' or range_episodes[0] == 0:
+            # Bb..bakaa
             if not anime_num in range_episodes:
                 continue    
-            else:
-                range_episodes.remove(anime_num)   
+            
     
-        print_log("richiesta al server 28 per l'episodio [{}/{}]...".format(anime_id, anime_num))
+        print_log("richiesta al server per l'episodio [{}/{}]...".format(anime_id, anime_num))
         
-        query = {'ts': int(time.time()), 'server': 28, 'id': anime_id, '_': 674}        
+        query = {'ts': int(time.time()), 'id': anime_id}        
         r = requests.get(url_request, params=query, headers=headers)
         data = r.json()
 
@@ -132,7 +135,8 @@ def download_anime_by_link(url_anime_raw: str, range_episodes: list) -> None:
 
         # print_log("trovati attualmente %d episodio/i..." % i)
     
-    path = create_directory(title)
+    # Re:Zero :C
+    path = create_directory(title.replace(":",""))
     print_log("creata directory al seguente indirizzo: '%s'" % path)
     print_log("in download %d episodi dell'anime '%s':" % (len(links_episode), title))
 
@@ -140,9 +144,11 @@ def download_anime_by_link(url_anime_raw: str, range_episodes: list) -> None:
 
     for link in links_episode:
 
-        regex = re.search("([a-zA-Z0-9\s_\\.\-\(\):])+(.mp4)$", link)
-        print_log("Downloading '%s' [%d/%d]" % (regex[0], i, len(links_episode)))
-        episode_path = "{}/{}".format(path, regex[0])
+        #regex = re.search("([a-zA-Z0-9\s_\\.\-\(\):])+(.mp4)$", link)
+        # bruh keep it simple
+        filename = link.split("/")[-1]
+        print_log("Downloading '%s' [%d/%d]" % (filename, i, len(links_episode)))
+        episode_path = "{}/{}".format(path, filename)
 
         if os.path.isfile(episode_path):
             print_log("questo episodio è già stato scaricato!")
@@ -150,6 +156,7 @@ def download_anime_by_link(url_anime_raw: str, range_episodes: list) -> None:
             continue
 
         try:
+            print(link)
             wget.download(link, episode_path)
             print("\n")
         except KeyboardInterrupt:
@@ -183,13 +190,15 @@ def search_by_keyword(keyword: str) -> Dict[int, Anime]:
             'user-agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/76.0.3809.100 Safari/537.36',
             'x-requested-with': 'XMLHttpRequest'
         }    
-        request = requests.get('https://www.animeworld.tv/ajax/film/search', params={'keyword': key }, headers=headers)
+        # change of api endpoint
+        request = requests.get('https://www.animeworld.tv/api/search', params={'keyword': key }, headers=headers)
         data = request.json()
         return data['html']
 
     data = make_request(keyword)
     if data == None:
         return {}
+
 
     # create an html parse to elaborate searches
     soup = BeautifulSoup(data, 'html.parser')
@@ -198,14 +207,14 @@ def search_by_keyword(keyword: str) -> Dict[int, Anime]:
     a_id = 1
     anime_list = dict()
 
-    for a_tag in soup.find_all('a'):
-
+    for item_tag in soup.find_all("div","item"):
         # get title
-        title = a_tag.get('data-jtitle')
-        # if title is null then there isn't any anime in that a element
-        if title != None:
-            link = "{}/{}".format("https://www.animeworld.tv", a_tag.get('href'))
-            anime_list[a_id] = Anime(title, 'None', 2019, link, a_id)
+
+        a_tag = item_tag.find("a","name")
+        # if href is null then there isn't any anime in that a element
+        if a_tag != None:
+            link = "https://www.animeworld.tv/"+a_tag["href"]
+            anime_list[a_id] = Anime(a_tag.string, 'None', 2019, link, a_id)
             a_id += 1
             
     return anime_list
@@ -217,6 +226,8 @@ def get_anime_range() -> List:
     print("\t- digita un range da xx:yy, ad esempio: 1:100 scarichera' gli episodi da 1 a 100 incluso;")
     print("\t- digita un intervallo separato da ; se vuoi scaricare episodi diversi, ad esempio: 1;5;32;102;")
     print("\t- altrimenti digta 'all', senza virgolette, per scaricare l'intera serie.")
+    print("\t- altrimenti digta '0', senza virgolette, per tornare indietro.")
+
 
     is_valid = False
 
@@ -316,7 +327,16 @@ def main() -> int:
 
     while user_choice != len(menu) + 1:
         print_menu()
-        user_choice = int(handle_input('> '))
+        while True:     #its ugly to end with an error at the input stage because you didnt enter an integer ^^
+            try:
+                user_choice = int(handle_input('> '))
+                if(user_choice >= 1 and user_choice <= 3):
+                    break
+                else:
+                    print("Input non valido!")
+            except:
+                print("Input non valido!")
+                pass
         if user_choice == 3:
             continue
         menu[user_choice - 1]()
@@ -325,4 +345,8 @@ def main() -> int:
     return 0
 
 # execute program
-main()
+if __name__ == "__main__":
+    main()
+
+# Last Edited by Alex Zorzi 01/10/2020
+# Happy Coding
