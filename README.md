@@ -1,4 +1,4 @@
-# animeworld-downloader
+# animeworld-downloader [ Works 31/01/2021 ]
 A simple python3 script to download animeworld.tv animes.
 
 ### Prerequisites
@@ -28,3 +28,5 @@ animeworld --help
 Remember to support AnimeWorld team visiting their website: https://www.animeworld.tv/
 
 Created by [@gabryon99](https://github.com/gabryon99)
+
+Currently Maintained by [@AlexZorzi](https://github.com/AlexZorzi)
